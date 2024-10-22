@@ -1,7 +1,8 @@
-import "./App.css";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { getAll, search, update } from "./BooksAPI";
 import { Link, useSearchParams } from "react-router-dom";
+import { useDebounce } from "use-debounce";
+import "./App.css";
+import { getAll, search, update } from "./BooksAPI";
 import Book from "./components/Book";
 
 function Search() {
@@ -18,6 +19,8 @@ function Search() {
   }, [allBooks]);
   const [searchBooks, setSearchBooks] = useState([]);
   const [myBooks, setMyBooks] = useState([]);
+  const [searchValue, setSearchValue] = useState('');
+  const [searchDebounce] = useDebounce(searchValue, 500);
   const [searchParams, setSearchParams] = useSearchParams();
   const inputValue = searchParams.get("s");
 
@@ -39,8 +42,17 @@ function Search() {
           setSearchBooks([]);
         }
       });
+    } else {
+      setSearchBooks([]);
     }
   }, [searchParams.get("s")]);
+
+  useEffect(() => {
+    if (!searchParams.get('s') && !searchDebounce) {
+      return;
+    }
+    setSearchParams({ s: searchDebounce });
+  }, [searchDebounce]);
 
   useEffect(() => {
     if (Array.isArray(searchBooks)) {
@@ -57,10 +69,8 @@ function Search() {
     update(book, shelf).then(() => getAllBooks());
   }, []);
 
-  const handleKeyDown = (e) => {
-    if (e.code === "Enter") {
-      setSearchParams({ s: e.target.value });
-    }
+  const handleInputChange = (e) => {
+    setSearchValue(e.target.value);
   };
 
   return (
@@ -75,7 +85,7 @@ function Search() {
               type="text"
               placeholder="Search by title, author, or ISBN"
               defaultValue={inputValue}
-              onKeyDown={handleKeyDown}
+              onChange={handleInputChange}
             />
           </div>
         </div>
